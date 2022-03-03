@@ -12,7 +12,7 @@ class Term(object):
         self.ops = []
         if isinstance(variables, Term):
             self.multiplier = variables.multiplier
-            self.ops = variables.ops
+            self.ops = variables.ops.copy()
         elif type(variables) is list:
             for t in variables:
                 if type(t) is int:
@@ -87,6 +87,12 @@ class Term(object):
             i += 1
         return hits
         
+    def to_operator(self):
+        # ensure that the Term only has one thing in it
+        assert len(self.ops) == 1
+        if self.multiplier != 1:
+            warn("Ignoring multiplier")
+        return self.terms[0].ops[0]
     
     @property
     def sign(self):
@@ -138,7 +144,7 @@ class Expression(object):
     def copy(self):
         l = []
         for t in self.terms:
-            l.append(t)
+            l.append(t.copy())
         return Expression(*l)
 
     def __neg__(self):
@@ -199,7 +205,14 @@ class Expression(object):
             raise TypeError("Multiplication is only defined for scalars, Terms and Expressions")
 
     def __rmul__(self, other):
-        if type(other) in [int, Fraction, str] or isinstance(other, Term):
+        if type(other) in [int, Fraction, str]:
+            copy = Expression()
+            copy.terms = self.terms.copy()
+            # scalar multiplicaiton
+            for i, t in enumerate(copy.terms):
+                copy.terms[i] =  t* other
+            return copy
+        elif isinstance(other, Term):
             copy = Expression()
             copy.terms = self.terms.copy()
             # right-multiplying by Term
@@ -213,6 +226,15 @@ class Expression(object):
         diff = self + -Expression(other)
         diff.collect()
         return diff.terms == []
+    
+    def to_operator(self):
+        # Ensure that the expression is castable to Term
+        assert len(self.terms) == 1
+        # ensure that the Term only has one thing in it
+        assert len(self.terms[0].ops) == 1
+        if self.terms[0].multiplier != 1:
+            warn("Ignoring multiplier")
+        return self.terms[0].ops[0]
         
     def from_str(self, s):
         # cursed parser code, a problem for another day!
@@ -221,6 +243,45 @@ class Expression(object):
         
     def show(self):
         display(Latex('$'+str(self)+'$'))
+        
+    def factor(self, x = None, side='left'):
+        # usage: factor (ABC + ABD) ---> AB, C+D
+        # Does NOT factor subunits! That's too hard!
+        if x is None:
+            # search through and find the longest forestring
+            
+            minorder = min([len(t.ops) for t in self.terms])
+            
+            if side in ['left', 'l']:
+                back = self.copy()
+                front = []
+                for n in range(minorder):
+                    a = self.terms[0].ops[n]
+                    if all([t.ops[n] == a for t in self.terms]):
+                        front.append(a)
+                        for t in back.terms:
+                            del t.ops[0]
+                    else:
+                        break
+                return Expression(front), back
+            
+            elif side in ['right','r']:
+                front = self.copy()
+                back = []
+                for n in range(minorder):
+                    a = self.terms[0].ops[-n-1]
+                    p = [t.ops[-n-1] == a for t in self.terms]
+                    if all(p):
+                        back = [a] + back
+                        for t in front.terms:
+                            del t.ops[-1]
+                    else:
+                        break
+                return front, Expression(back)
+
+
+        elif isinstance(x, Term):
+            raise NotImplementedException
         
             
     def collect(self):
@@ -239,9 +300,11 @@ class Expression(object):
         for i, t in enumerate(self.terms):
             if termstr in t.ops:
                 toDrop.append(i)
-                
+        
+        n=0
         for i in toDrop:
-            del self.terms[i]
+            del self.terms[i-n]
+            n+=1
             
     def sort(self, rule='multiplier', reverse=False):
         # Sorts by commutative addition
@@ -272,7 +335,7 @@ class Expression(object):
     def substitute(self, glob, sub, I=0):
         glob = Term(glob)
         if isinstance(sub, Term):
-            sub = Expression([sub])
+            sub = Expression(sub)
         assert isinstance(sub, Expression)
         # we cannot do any fancy multiterm substitutions... yet!
         retval = Expression()
@@ -293,8 +356,6 @@ class Expression(object):
                 x = x*Expression(p)*sub
             retval += x*Expression(last)*(t.multiplier/glob.multiplier)
         return retval
-                    
-            
         
         
         
@@ -304,6 +365,9 @@ class CommutatorAlgebra(object):
         
 
     def add_operator(self, name):
+        if isinstance(name, Expression) or isinstance(name, Term):
+            name = name.to_operator()
+        assert type(name) is str
         if name not in self.commutators:
             col = {}
             for k in self.commutators:
@@ -319,7 +383,15 @@ class CommutatorAlgebra(object):
         assert isinstance(value, Term) or isinstance(value, Expression)
         value = Expression(value)
         
-
+        if arg[0] == arg[1]:
+            warn("Attempting to set a symmetric commutator to a nonzero value... these better be Grassman numbers!")
+        
+        # cast to str
+        arg = list(arg)
+        for i in range(2):
+            if isinstance(arg[i], Expression) or isinstance(arg[i], Term):
+                arg[i] = arg[i].to_operator()
+        
         # these do nothing if the operator is already known
         self.add_operator(arg[0])
         self.add_operator(arg[1])
@@ -427,5 +499,142 @@ class CommutatorAlgebra(object):
             if I <= 1:
                 return expr
             else:
-                return self.move_left(expr, A, I-1)    
+                return self.move_left(expr, A, I-1) 
     
+
+    
+    
+# class AntiCommutatorAlgebra(object):
+#     def __init__(self):
+#         self.acommutators = {}
+
+
+#     def add_operator(self, name):
+#         if name not in self.acommutators:
+#             col = {}
+#             for k in self.acommutators:
+#                 self.acommutators[k][name] = 0
+#                 col[k] = 0
+#             col[name] = 2*Term([name, name]) # everyhting has this property by default (overridable)
+#             self.acommutators[name] = col 
+
+#     # defines [a, b] syntax
+#     def __setitem__(self, arg, value):
+#         assert len(arg) == 2
+#         assert type(arg) is tuple
+#         assert isinstance(value, Term) or isinstance(value, Expression)
+#         value = Expression(value)
+
+
+#         # these do nothing if the operator is already known
+#         self.add_operator(arg[0])
+#         self.add_operator(arg[1])
+
+
+#         if value == 0:
+#             self.acommutators[arg[0]][arg[1]] = 0
+#             self.acommutators[arg[1]][arg[0]] = 0
+#         else:
+#             self.acommutators[arg[0]][arg[1]] = value.copy()
+#             self.acommutators[arg[1]][arg[0]] = value
+
+
+#     def __getitem__(self, arg):
+#         if arg[0] not in self.acommutators or arg[1] not in self.acommutators:
+#             return 0
+#         else:
+#             return self.acommutators[arg[0]][arg[1]]
+
+#     @property
+#     def operators(self):
+#         return set(self.acommutators.keys())
+
+
+#     # moves all occurrences of the operator A, occurring in 'expression', as far right as possible
+#     def move_right(self, expr, A, I=0):
+#             # Strategy: Go through each term in self.terms
+#             # Within each term's operator list, iteratively keep moving it up in index using the elementary operation
+#             #  AB -> BA + [A, B]
+#             # repeat until done
+
+#             if A not in expr.operators:
+#                 return expr
+
+#             if A not in self.operators:
+#                 s = 'Symbol "'+str(A)+'" is not in the commutator database, assuming scalar...'
+#                 warn(s)
+
+#             new_terms = []
+#             for term in expr.terms:
+#                 N = len(term.ops)
+#                 # do not need to do anything if A is at the end
+#                 for i in range(I, N-1):
+#                     if term.ops[i] == A:
+#                         # calculate the commutator
+#                         c = self[term.ops[i], term.ops[i+1]]
+#     #                     print(c)
+#                         if c != 0:
+#                             front = term.ops[:i]
+#                             back = term.ops[i+2:]
+#                             for commutedTerm in c.terms:
+#                                 t2 = Term(front) * commutedTerm  * Term(back)
+#                                 t2.multiplier = term.multiplier*commutedTerm.multiplier
+#                                 new_terms.append(t2)
+
+#                         # swap the operators
+#                         term.ops[i], term.ops[i+1] = term.ops[i+1], term.ops[i]
+#                         # ANTIcommutator
+#                         term.multiplier = -term.multiplier
+
+#             # append the newly cooked terms
+#             expr.terms += new_terms
+
+#             if I == expr.order-1:
+#                 return expr
+#             else:
+#                 return self.move_right(expr, A, I+1)
+
+#     def move_left(self, expr, A, I=None):
+#             # Strategy: Go through each term in self.terms
+#             # Within each term's operator list, iteratively keep moving it up in index using the elementary operation
+#             #  AB -> BA + [A, B]
+#             # repeat until done
+#             if I is None:
+#                 I = expr.order
+
+#             if A not in expr.operators:
+#                 return expr
+
+#             if A not in self.operators:
+#                 s = 'Symbol "'+str(A)+'" is not in the commutator database, assuming scalar...'
+#                 warn(s)
+
+#             new_terms = []
+#             for term in expr.terms:
+#                 N = len(term.ops)
+#                 # do not need to do anything if A is at the end
+#                 for i in range(1, min(I,N)):
+#                     if term.ops[i] == A:
+#                         # calculate the commutator
+#                         c = self[term.ops[i-1], term.ops[i]]
+#     #                     print(c)
+#                         if c != 0:
+#                             front = term.ops[:i-1]
+#                             back = term.ops[i+1:]
+#                             for commutedTerm in c.terms:
+#                                 t2 = Term(front) * commutedTerm  * Term(back)
+#                                 t2.multiplier = term.multiplier*commutedTerm.multiplier
+#                                 new_terms.append(t2)
+
+#                         # swap the operators
+#                         term.ops[i-1], term.ops[i] = term.ops[i], term.ops[i-1]
+#                         # ANTIcommutator
+#                         term.multiplier = -term.multiplier
+
+#             # append the newly cooked terms
+#             expr.terms += new_terms
+
+#             if I <= 1:
+#                 return expr
+#             else:
+#                 return self.move_left(expr, A, I-1)
