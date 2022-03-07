@@ -356,6 +356,7 @@ class Expression(object):
             return copy
         else:
             return NotImplemented
+        
             
     def __eq__(self, other):
         diff = self + -Expression(other)
@@ -497,6 +498,7 @@ class Expression(object):
             h = '*'.join([str(o) for o in t.ops])
             if h not in agg:
                 agg[h] = t.copy()
+                assert type(t.multiplier) is Fraction
             else:
                 agg[h].multiplier += t.multiplier
         self.terms = [t for t in agg.values() if t.multiplier != 0]
@@ -523,6 +525,7 @@ class Expression(object):
                 
         
     def coefficient(self, term, side='left'):
+        self.collect()
         if type(term) in [Operator, int, Fraction]:
             term = Term(term)
         elif not isinstance(term, Term):
