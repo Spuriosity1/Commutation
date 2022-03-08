@@ -423,9 +423,9 @@ class Expression(object):
             s += term.as_latex() + ' '
         return s
         
-    def show(self):
-        if len(self.terms) > 1000:
-            raise UserError('Expression too long')
+    def show(self, max_len=200):
+        if len(self.terms) > max_len:
+            raise RuntimeError('Expression too long (override with expression.show(n), n is number of terms)')
         display(Latex('$'+self.as_latex()+'$'))
         
     def move_scalars(self, side='left'):
@@ -624,7 +624,7 @@ class CommutatorAlgebra(object):
             else:
                 # Ensure that there is at least one good relation to work with!
                 if self.relations[l][r][ac-1] is not None:
-                    raise UserError('Attempt to set both + and - commutators to None. At least one must be specified.')
+                    raise RuntimeError('Attempt to set both + and - commutators to None. At least one must be specified.')
                 else:
                     self.relations[l][r][ac] = None
                     self.relations[r][l][ac] = None
