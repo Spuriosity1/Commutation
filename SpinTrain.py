@@ -83,6 +83,13 @@ class Term(object):
             else:
                 raise TypeError('cannot initialise Term from ' + str(type(t)))
 
+    @property
+    def is_scalar(self):
+        for o in self.ops:
+            if not o.is_scalar:
+                return False
+        return True
+                
     def from_str(self, s):
         # cursed parser code, a problem for another day!
         raise NotImplementedError
@@ -276,6 +283,13 @@ class Expression(object):
         for term in self.terms:
             s += '  ' + str(term)
         return s
+    
+    @property
+    def is_scalar(self):
+        for t in self.terms:
+            if not t.is_scalar:
+                return False
+        return True
     
     @property
     def order(self):
