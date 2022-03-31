@@ -314,6 +314,9 @@ class Expression(object):
             t.multiplier *= -1
         return copy
     
+    def __sub__(self, other):
+        return self + other*-1
+    
     def __add__(self, other):
         copy = Expression(self)
         if isinstance(other, Expression):
@@ -592,8 +595,6 @@ class Expression(object):
             retval += x*Term(*last)*(t.multiplier/glob.multiplier)
         return retval
         
-        
-        
 class CommutatorAlgebra(object):
     def __init__(self, strict=False):
         self.relations = {}
@@ -631,7 +632,7 @@ class CommutatorAlgebra(object):
             rel = Expression(rhs) if rhs is not None else None
             if rel is not None:
                 if l == r and ac==0:
-                    s = 'Setting [%s, %s] to something other than default (0)... are you sure?' % (l,r)
+                    s = 'Setting [%s, %s] to something other than default (0) ... are you sure?' % (l,r)
                     warn(s)
                 self.relations[l][r][ac] = rel
                 self.relations[r][l][ac] = rel*-1
@@ -645,18 +646,24 @@ class CommutatorAlgebra(object):
                         
         return setter
     
-    def get_commutator(self, l, r):
+    def get_commutator(self, l: Operator, r :Operator):
         assert isinstance(l, Operator)
         assert isinstance(r, Operator)
         if l.is_scalar or r.is_scalar:
             return 0
         elif l.name not in self.relations:
             s = 'Non-scalar operator "'+str(l)+'" is not in the commutator database, assuming it commutes...'
-            warn(s)
+            if self.strict:
+                raise RuntimeError(s)
+            else:
+                warn(s)
             return 0
         elif r.name not in self.relations:
             s = 'Non-scalar operator "'+str(r)+'" is not in the commutator database, assuming it commutes...'
-            warn(s)
+            if self.strict:
+                raise RuntimeError(s)
+            else:
+                warn(s)
             return 0
         else:
             return self.relations[l.name][r.name][0]
