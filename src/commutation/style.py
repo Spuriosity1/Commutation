@@ -25,3 +25,6 @@ def show(x, max_len=200):
         ipdisp.display(ipdisp.Latex('$'+s+'$'))
     except AttributeError:
         raise AttributeError("LaTeX rendering is only possible in a jupyter notebook.")
+    
+## Converts Expression, Term or Operator into Mathematica
+# def as_mathematica(x):
