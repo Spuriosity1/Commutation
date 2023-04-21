@@ -1,6 +1,10 @@
+[build-system]
+requires = ["setuptools", "setuptools-scm"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "commutation"
-version = "0.0.2"
+version = "0.0.7"
 authors = [
   { name="Alaric Sanders", email="als217@cam.ac.uk" },
 ]
@@ -14,6 +18,7 @@ classifiers = [
     "Operating System :: OS Independent",
 	"Intended Audience :: Science/Research"
 ]
+
 
 [project.urls]
 "Homepage" = "https://github.com/Spuriosity1/Commutation/"
