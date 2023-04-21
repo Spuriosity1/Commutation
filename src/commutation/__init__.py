@@ -1,3 +1,3 @@
-from .expression import Operator, Term, Expression
+from .expression import Expression, Term, Operator
 from .commutatoralgebra import CommutatorAlgebra
 from .style import show

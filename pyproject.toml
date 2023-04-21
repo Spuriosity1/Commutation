@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "commutation"
-version = "0.1.0"
+version = "0.1.2"
 authors = [
   { name="Alaric Sanders", email="als217@cam.ac.uk" },
 ]
