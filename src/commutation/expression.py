@@ -52,6 +52,10 @@ class Operator(object):
             return self + other*-1 == 0
         return False
     
+# trivial overload
+class Scalar(Operator):
+    def __init__(self, name, latex_string=None):
+        super().__init__(name, latex_string, scalar=True)
 
 class Term(object):
     """Terms should be read as (Fraction * Term1*Terms2*...).

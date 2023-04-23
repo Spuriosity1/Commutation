@@ -4,5 +4,4 @@
    - Constructor operations and algebra
    - some well known commutator reductions
  - Anticommutator algebra
- - Some kind of heuristic?
- - 
+ - Special scalar I that squares to -1, more robust algebraic number support
