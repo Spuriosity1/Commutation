@@ -40,8 +40,14 @@ class Operator(object):
     def __add__(self, other):
         return Expression(self, other)
 
+    def __radd__(self, other):
+        return Expression(other, self)
+
     def __sub__(self, other):
         return self + (other*-1)
+
+    def __rsub__(self, other):
+        return other + (-1*self)
 
     def __str__(self):
         return self.name
@@ -57,9 +63,14 @@ class Operator(object):
             return self + other*-1 == 0
         return False
 
+    def __neg__(self):
+        t = Term(self)
+        t.multiplier = -t.multiplier
+        return t
+
+
+
 # trivial overload
-
-
 class Scalar(Operator):
     def __init__(self, name, latex_string=None):
         super().__init__(name, latex_string, scalar=True)
@@ -134,7 +145,8 @@ class Term(object):
     def __len__(self):
         return len(self.ops)
 
-    def __str__(self):
+
+    def __repr__(self):
         if self.multiplier > 0:
             s = '+'+str(self.multiplier)
         else:
@@ -142,6 +154,9 @@ class Term(object):
         for op in self.ops:
             s += ' '+str(op)
         return s
+
+    def __str__(self):
+        return self.__repr__()
 
     def as_latex(self):
         if self.multiplier.denominator == 1:
@@ -175,6 +190,9 @@ class Term(object):
     def __sub__(self, other):
         return self + (other*-1)
 
+    def __rsub__(self, other):
+        return (other*-1) + self
+
     def __mul__(self, other):
         copy = cp.copy(self)
         if type(other) in (int, Fraction):
@@ -186,6 +204,14 @@ class Term(object):
         elif isinstance(other, Term):
             copy.multiplier *= other.multiplier
             copy.ops = copy.ops + other.ops
+            return copy
+        else:
+            return NotImplemented
+
+    def __truediv__(self, other):
+        copy = cp.copy(self)
+        if type(other) in (int, Fraction):
+            copy.multiplier /= Fraction(other)
             return copy
         else:
             return NotImplemented
@@ -221,25 +247,6 @@ class Term(object):
                 i += N-1
             i += 1
         return hits
-
-#     def replaceall(self, *rules):
-#         """Usage: term.replaceall((target, replacement),(target, replacement)...)
-#         This method only works with Term for Term/Operator substitutions:
-#         """
-#         i=0
-#         while i < len(self.ops):
-#             move_next = True
-#             for glob, repl in rules:
-#                 glob = Term(glob)
-# #                 print([str(u) for u in self.ops[i:i+len(glob)]])
-#                 if self.ops[i:i+len(glob)] == glob.ops:
-#                     t = Term(repl)
-#                     self.ops = self.ops[:i] + t.ops + self.ops[i+len(glob):]
-#                     self.multiplier *= t.multiplier/glob.multiplier
-#                     i += len(glob)-1
-#                     move_next = False
-#             if move_next:
-#                 i += 1
 
     @property
     def sign(self):
@@ -284,11 +291,15 @@ class Expression(object):
             elif term != 0:
                 self.terms.append(Term(term))
 
-    def __str__(self):
+    def __repr__(self):
         s = ''
         for term in self.terms:
             s += '  ' + str(term)
         return s
+
+    def __str__(self):
+        return self.__repr__()
+
 
     @property
     def is_scalar(self):
@@ -378,7 +389,7 @@ class Expression(object):
         else:
             return NotImplemented
 
-    def __eq__(self, other:Expression | Term | Operator ):
+    def __eq__(self, other):
         diff = self + -Expression(other)
         diff.collect()
         return diff.terms == []
@@ -394,7 +405,8 @@ class Expression(object):
 
     def replaceall(self, *rule_args):
         """Usage: term.replaceall((target, replacement),(target, replacement)...)
-        targets must be Terms, but replacemnts may be any expression_like
+        targets must be Terms, but replacemnts may be any expression_like.
+        Applies the rules in order specified.
         """
         # make it mutable
         rules = []
@@ -448,6 +460,8 @@ class Expression(object):
         # usage: factor (ABC + ABD) ---> AB, C+D
         # Does NOT factor subunits! That's too hard!
         minorder = min([len(t.ops) for t in self.terms])
+        front = Term()
+        back = Expression(self)
 
         if x is None:
             # search through and find the longest forestring
@@ -478,7 +492,7 @@ class Expression(object):
                         break
                 back = Term(*back_arr)
             else:
-                raise IndexError(
+                raise ValueError(
                     "Side must be one of 'l', 'r', 'left', 'right'")
 
         elif type(x) in [Term, Operator]:
@@ -498,14 +512,14 @@ class Expression(object):
                     front = Expression(self)
                     back = Term()
 
-        assert front*back == self
+        assert front * back == self
         return front, back
 
     def collect(self):
         agg = {}
 
         for t in self.terms:
-            h = '*'.join([str(o) for o in t.ops])
+            h = '*'.join([o.name for o in t.ops])
             if h not in agg:
                 agg[h] = t.copy()
                 assert type(t.multiplier) is Fraction
