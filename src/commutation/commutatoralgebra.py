@@ -156,8 +156,9 @@ class CommutatorAlgebra(AbstractCommutatorAlgebra):
         B = term.ops[i-1]
         front = Term(*term.ops[:i-1])
         back = Term(*term.ops[i+1:])
- 
-        c = self.get_commutator(A, B)
+
+        # reordering B*A -> A*B picks up [B, A] = -[A, B]
+        c = self.get_commutator(B, A)
         extra = front * c * back * term.multiplier
         
         term.ops[i-1], term.ops[i] = term.ops[i], term.ops[i-1]
@@ -215,8 +216,11 @@ class AntiCommutatorAlgebra(AbstractCommutatorAlgebra):
         front = Term(*term.ops[:i])
         back = Term(*term.ops[i+2:])
     
-        c = self.get_anticommutator(
-            term.ops[i], term.ops[i+1])
+        A = term.ops[i]
+        B = term.ops[i+1]
+        c = self.get_anticommutator(A, B)
+        if c is None:
+            raise AntiCommutatorUnknownException(A, B)
         extra = Expression(front) * \
             c * Expression(back)*term.multiplier
         term.multiplier *= -1

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "Commutation"
-version = "1.5.0"
+version = "1.5.1"
 requires-python = ">= 3.8"
 authors = [
 	{name = "Alaric Sanders", email="thathatatt@gmail.com"}
@@ -23,6 +23,9 @@ dependencies = [
   "ipython",
 ]
 
+[project.optional-dependencies]
+test = ["pytest"]
+
 [project.urls]
 Homepage = "https://github.com/Spuriosity1/Commutation"
 Issues = "https://github.com/Spuriosity1/Commutation/issues"
@@ -33,3 +36,9 @@ package-dir = {"" = "src"}
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.pytest.ini_options]
+# allows `pytest` from the repo root without installing the package first
+# (tox installs it, but this keeps the local dev loop simple)
+pythonpath = ["src"]
+testpaths = ["tests"]
