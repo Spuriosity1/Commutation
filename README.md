@@ -22,6 +22,29 @@ print(x)
 # +1 a  -9 b c  +1 a b a
 ```
 
+### SymPy coefficients
+
+Term coefficients are generic SymPy expressions, so you can scale operators by
+symbols, exact rationals or algebraic numbers. `int` and `fractions.Fraction`
+are promoted automatically; `float` is rejected to keep arithmetic exact.
+
+```python
+import sympy
+from commutation import Operator, Expression
+
+a, b = Operator('a'), Operator('b')
+J, k = sympy.symbols('J k')
+
+x = J*a + k*a + a
+x.collect()
+print(x)  # +J + k + 1 a   (like terms gather their symbolic coefficients)
+
+# the imaginary unit behaves correctly: (i a)(i b) = -a b
+y = Expression(sympy.I * a) * Expression(sympy.I * b)
+y.collect()
+print(y)  # -1 a b
+```
+
 ### Complicated substitutions
 ```python
 x = a*b*b*b*a*c*a*a*c*a*b + 1

@@ -35,7 +35,11 @@ Operator arithmetic promotes upward: `op * x → Term`, `op + x → Expression`,
 
 ### `Term`
 Reads as `multiplier * ops[0] * ops[1] * ...`.
-- `multiplier` — a `fractions.Fraction` (exact rational arithmetic, no floats).
+- `multiplier` — a generic **SymPy** coefficient (`sympy.Expr`). Python `int` and
+  `fractions.Fraction` are accepted and promoted to exact sympy numbers;
+  `float` is rejected (see `coerce_coeff`). This lets a term be scaled by
+  symbols (`sympy.Symbol('J')`), exact rationals, or algebraic numbers such as
+  `sympy.I` (`I**2 == -1`).
 - `ops` — a list of `Operator`s; `[]` means the identity `1`.
 
 Important contract (see the class docstring): `ops` holds **shallow** references
@@ -114,8 +118,9 @@ anticommutator support is newer / less exercised than the commutator path.)
 
 ## Conventions & gotchas
 
-- **Exact arithmetic only** — all coefficients are `Fraction`; `int` is accepted and
-  promoted, floats are not.
+- **Exact arithmetic only** — coefficients are `sympy.Expr`; `int` and `Fraction`
+  are accepted and promoted to exact sympy numbers, Python `float` is not
+  (it would introduce inexact arithmetic). Use `Fraction` or `sympy.Rational`.
 - **Operators compared by `name`** in the relation tables, but by object elsewhere
   via algebraic `__eq__`. Two distinct `Operator`s sharing a `name` will collide as
   table keys.
@@ -130,9 +135,9 @@ anticommutator support is newer / less exercised than the commutator path.)
 
 ```
 Commutation/
-├── pyproject.toml          setuptools build, src-layout, dep: ipython
+├── pyproject.toml          setuptools build, src-layout, deps: ipython, sympy
 ├── README.md               usage examples
-├── TODO.md                 roadmap (tests, anticommutators, √-1 scalar, spin helpers)
+├── TODO.md                 roadmap (anticommutators, spin helpers)
 ├── ARCHITECTURE.md         this file
 ├── src/commutation/
 │   ├── __init__.py         public API re-exports
@@ -145,8 +150,9 @@ Commutation/
 
 ## Status / open work (from `TODO.md`)
 
-- **No test suite yet** — the top roadmap item (constructor algebra + known
-  commutator reductions).
 - Harden anticommutator algebra.
-- A special scalar `I` with `I² = −1` / better algebraic-number support.
 - Helper constructors for spin operators (currently built by hand).
+
+Resolved: the test suite now lives under `tests/`; algebraic-number support
+(including `I² = −1`) comes for free now that coefficients are generic SymPy
+expressions.
