@@ -7,9 +7,11 @@ import warnings
 
 import pytest
 
+import sympy
+
 from commutation import (
     Operator,
-    Scalar,
+    Term,
     Expression,
     CommutatorAlgebra,
     CommutatorUnknownException,
@@ -23,13 +25,6 @@ def test_set_commutator_stores_antisymmetric_partner(spin):
     ca, az, ap, am = spin
     assert ca.relations["ap"]["am"] == 2 * az
     assert ca.relations["am"]["ap"] == -2 * az
-
-
-def test_get_commutator_scalar_is_zero(spin):
-    ca, az, ap, am = spin
-    K = Scalar("K")
-    assert ca.get_commutator(K, az) == 0
-    assert ca.get_commutator(az, K) == 0
 
 
 def test_get_commutator_unknown_warns_and_assumes_commute(spin):
@@ -80,13 +75,14 @@ def test_move_right_readme_example(spin):
     assert e == ap * am * az * az * az - 2 * ap * am * az * az + ap * am * az
 
 
-def test_scalars_commute_through(spin):
+def test_scalar_coefficient_carried_through(spin):
+    # a scalar is now a SymPy coefficient and factors straight through a move
     ca, az, ap, am = spin
-    KA = Scalar("KA")
-    e = Expression(az * ap * am * KA * am)
+    KA = sympy.Symbol("KA")
+    e = Expression(Term(KA, az, ap, am, am))
     ca.move_right(e, az)
     e.collect()
-    assert e == ap * am * KA * am * az - ap * am * KA * am
+    assert e == KA * (ap * am * am * az) - KA * (ap * am * am)
 
 
 def test_unknown_operator_during_move_warns(spin):

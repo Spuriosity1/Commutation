@@ -127,10 +127,8 @@ class CommutatorAlgebra(AbstractCommutatorAlgebra):
     def get_commutator(self, l: Operator, r: Operator) -> Relation:
         assert isinstance(l, Operator)
         assert isinstance(r, Operator)
-        if l.is_scalar or r.is_scalar:
-            return 0
-        elif l.name not in self.relations:
-            s = 'Non-scalar operator "' + \
+        if l.name not in self.relations:
+            s = 'Operator "' + \
                 str(l)+'" is not in the commutator database, assuming it commutes...'
             if self.strict:
                 raise CommutatorUnknownException(l, r)
@@ -138,7 +136,7 @@ class CommutatorAlgebra(AbstractCommutatorAlgebra):
                 warn(s)
             return 0
         elif r.name not in self.relations:
-            s = 'Non-scalar operator "' + \
+            s = 'Operator "' + \
                 str(r)+'" is not in the commutator database, assuming it commutes...'
             if self.strict:
                 raise CommutatorUnknownException(l, r)
@@ -148,7 +146,6 @@ class CommutatorAlgebra(AbstractCommutatorAlgebra):
         else:
             return self.relations[l.name][r.name]
 
-    
     def _move_operator_right_once(self, term: Term, i: int) -> Expression:
         front = Term(*term.ops[:i])
         back = Term(*term.ops[i+2:])
@@ -215,9 +212,7 @@ class AntiCommutatorAlgebra(AbstractCommutatorAlgebra):
     def get_anticommutator(self, l: Operator, r: Operator) -> Relation:
         assert isinstance(l, Operator)
         assert isinstance(r, Operator)
-        if l.is_scalar or r.is_scalar:
-            return None # no Grassman for you
-        elif not (l.name in self.relations and r.name in self.relations):
+        if not (l.name in self.relations and r.name in self.relations):
             return None # idk how to commute this
         else:
             return self.relations[l.name][r.name]

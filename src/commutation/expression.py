@@ -1,4 +1,4 @@
-"""The algebraic data model: ``Operator``, ``Scalar``, ``Term`` and ``Expression``.
+"""The algebraic data model: ``Operator``, ``Term`` and ``Expression``.
 
 Coefficients (the ``Term.multiplier``) are generic SymPy expressions, so a term
 may be scaled by anything SymPy understands — exact rationals, symbols such as
@@ -52,16 +52,14 @@ class Operator:
     Terms are built from lists of Operators.
     """
 
-    def __init__(self, name: str, latex_string: str | None = None, scalar: bool = False):
+    def __init__(self, name: str, latex_string: str | None = None):
         """Operator constructor
 
         name         -> display name, result of str(Operator),
                         used for keys in CommutatorAlgebra
         latex_string -> allows fancier formatting for as_latex() methods in
                         enclosing classes, defaults to name if not provided.
-        scalar       -> Flags whether CommutatorAlgebra should treat this as a scalar
         """
-        self.is_scalar = scalar
         if not isinstance(name, str):
             raise TypeError('Names must be str')
         if latex_string is None:
@@ -113,12 +111,6 @@ class Operator:
         return t
 
 
-# trivial overload
-class Scalar(Operator):
-    def __init__(self, name: str, latex_string: str | None = None):
-        super().__init__(name, latex_string, scalar=True)
-
-
 class Term:
     """Terms should be read as (coefficient * Term1*Term2*...).
 
@@ -155,37 +147,12 @@ class Term:
 
     @property
     def is_scalar(self) -> bool:
-        return all(o.is_scalar for o in self.ops)
+        """True when the term is a pure coefficient (no operators)."""
+        return not self.ops
 
     def from_str(self, s: str):
         # cursed parser code, a problem for another day!
         raise NotImplementedError
-
-    def factor_scalars(self) -> tuple[Term, Term]:
-        scalars: list[Operator] = []
-        ops: list[Operator] = []
-        for o in self.ops:
-            if o.is_scalar:
-                scalars.append(o)
-            else:
-                ops.append(o)
-        return Term(*scalars) * self.multiplier, Term(*ops)
-
-    def move_scalars(self, side: str = 'left') -> None:
-        scalars: list[Operator] = []
-        ops: list[Operator] = []
-        for o in self.ops:
-            if o.is_scalar:
-                scalars.append(o)
-            else:
-                ops.append(o)
-
-        if side in ('l', 'left'):
-            self.ops = scalars + ops
-        elif side in ('r', 'right'):
-            self.ops = ops + scalars
-        else:
-            raise IndexError("Side must be one of 'l', 'r', 'left', 'right'")
 
     def __len__(self) -> int:
         return len(self.ops)
@@ -489,10 +456,6 @@ class Expression:
         for term in self.terms:
             s += term.as_latex() + ' '
         return s
-
-    def move_scalars(self, side: str = 'left') -> None:
-        for t in self.terms:
-            t.move_scalars(side)
 
     def factor(self, side: str = 'left', x: Term | Operator | None = None) -> tuple[Expression | Term, Expression | Term]:
         # usage: factor (ABC + ABD) ---> AB, C+D

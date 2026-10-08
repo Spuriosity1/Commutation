@@ -1,17 +1,17 @@
-"""Tests for the Operator / Scalar primitives."""
+"""Tests for the Operator primitives."""
 import pytest
 
-from commutation import Operator, Scalar, Term, Expression
+from commutation import Operator, Term, Expression
 
 
 def test_name_must_be_str():
     with pytest.raises(TypeError):
-        Operator(123)
+        Operator(123)  # type: ignore[arg-type]
 
 
 def test_latex_must_be_str():
     with pytest.raises(TypeError):
-        Operator("a", 123)
+        Operator("a", 123)  # type: ignore[arg-type]
 
 
 def test_latex_defaults_to_name():
@@ -72,11 +72,6 @@ def test_eq_is_algebraic():
     assert a != b
     assert a == Term(a)
     assert (a - a) == 0
-
-
-def test_scalar_sets_flag():
-    assert Scalar("K").is_scalar is True
-    assert Operator("a").is_scalar is False
 
 
 def test_subtraction_of_operators():

@@ -66,10 +66,10 @@ def test_order_property():
 
 
 def test_is_scalar_property():
-    from commutation import Scalar
+    import sympy
     a = Operator("a")
-    K = Scalar("K")
-    assert (K + K).is_scalar is True
+    K = sympy.Symbol("K")
+    assert Expression(Term(K), Term(K)).is_scalar is True
     assert (a + K).is_scalar is False
 
 

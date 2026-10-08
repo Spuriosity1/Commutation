@@ -3,7 +3,9 @@ from fractions import Fraction
 
 import pytest
 
-from commutation import Operator, Scalar, Term
+import sympy
+
+from commutation import Operator, Term
 
 
 def test_construction_products_operators_and_scalars():
@@ -29,13 +31,16 @@ def test_nested_term_flattens():
 
 def test_bad_type_raises():
     with pytest.raises(TypeError):
-        Term(1.5)  # float is not allowed, only int / Fraction / Operator
+        Term(1.5)  # type: ignore[arg-type]  # float is not allowed
 
 
 def test_is_scalar():
+    # a Term is "scalar" iff it carries no operators (a pure coefficient)
     a = Operator("a")
-    assert Term(Scalar("K"), Scalar("J")).is_scalar is True
+    assert Term(sympy.Symbol("K")).is_scalar is True
+    assert Term(3).is_scalar is True
     assert Term(a).is_scalar is False
+    assert Term(sympy.Symbol("K"), a).is_scalar is False
 
 
 def test_order_sign_len():
@@ -63,33 +68,6 @@ def test_neg_copies():
     assert t.multiplier == 1  # original untouched
 
 
-def test_factor_scalars():
-    a = Operator("a")
-    K = Scalar("K")
-    scal, ops = Term(3, K, a).factor_scalars()
-    assert scal == Term(3, K)
-    assert ops == Term(a)
-
-
-def test_move_scalars_left_and_right():
-    a, b = Operator("a"), Operator("b")
-    K = Scalar("K")
-
-    left = Term(a, K, b)
-    left.move_scalars("left")
-    assert [str(o) for o in left.ops] == ["K", "a", "b"]
-
-    right = Term(a, K, b)
-    right.move_scalars("right")
-    assert [str(o) for o in right.ops] == ["a", "b", "K"]
-
-
-def test_move_scalars_bad_side():
-    a = Operator("a")
-    with pytest.raises(IndexError):
-        Term(a).move_scalars("sideways")
-
-
 def test_findall_non_overlapping():
     a, b = Operator("a"), Operator("b")
     assert Term(a, a, a).findall(Term(a, a)) == [0]
@@ -110,5 +88,5 @@ def test_copy_is_independent():
     a = Operator("a")
     t = Term(a)
     c = t.copy()
-    c.multiplier = 5
+    c.multiplier = sympy.Integer(5)
     assert t.multiplier == 1
