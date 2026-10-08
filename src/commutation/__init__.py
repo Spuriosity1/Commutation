@@ -1,4 +1,4 @@
-from .expression import Expression, Term, Operator, Scalar
+from .expression import Expression, Term, Operator
 from .commutatoralgebra import \
         AntiCommutatorUnknownException, AntiCommutatorAlgebra, \
         CommutatorAlgebra, CommutatorUnknownException

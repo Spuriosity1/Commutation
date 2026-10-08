@@ -22,6 +22,29 @@ print(x)
 # +1 a  -9 b c  +1 a b a
 ```
 
+### SymPy coefficients
+
+Term coefficients are generic SymPy expressions, so you can scale operators by
+symbols, exact rationals or algebraic numbers. `int` and `fractions.Fraction`
+are promoted automatically; `float` is rejected to keep arithmetic exact.
+
+```python
+import sympy
+from commutation import Operator, Expression
+
+a, b = Operator('a'), Operator('b')
+J, k = sympy.symbols('J k')
+
+x = J*a + k*a + a
+x.collect()
+print(x)  # +J + k + 1 a   (like terms gather their symbolic coefficients)
+
+# the imaginary unit behaves correctly: (i a)(i b) = -a b
+y = Expression(sympy.I * a) * Expression(sympy.I * b)
+y.collect()
+print(y)  # -1 a b
+```
+
 ### Complicated substitutions
 ```python
 x = a*b*b*b*a*c*a*a*c*a*b + 1
@@ -45,13 +68,15 @@ print('['+str(fr) + '  ] * ' + str(ba) + ' = ' +str(fr*ba)) # [  +10 a  +4/5 a c
 ### Commutators
 
 ```python
+import sympy
+
 ca = CommutatorAlgebra()
 
 az = Operator('az','S^z_a')
 ap = Operator('a⁺','S^+_a')
 am = Operator('a⁻','S^-_a')
 
-KA = Operator('KA', 'K_A', scalar=True)
+KA = sympy.Symbol('K_A')  # a scalar is just a SymPy coefficient
 
 # note the funky bracket sequence - set_commutator actually returns a function
 ca.set_commutator(az,ap)(ap)
@@ -73,13 +98,13 @@ print(xpr) # +1 a⁻ az a⁺ az az  -2 a⁻ az a⁺ az  +2 az az az az  -1 a⁻ 
 
 # these will warn you if you add an unknown operator...
 xpr2 = Expression(az*ap*am*c*am)
-ca.move_right(xpr2, az) # UserWarning: Non-scalar operator "c" is not in the commutator database, assuming it commutes...
+ca.move_right(xpr2, az) # UserWarning: Operator "c" is not in the commutator database, assuming it commutes...
 xpr2.collect()
 print(xpr2) #   +1 a⁺ a⁻ c a⁻ az  -1 a⁺ a⁻ c a⁻
 
-# # ... but scalars are fine.
-xpr3 = Expression(az*ap*am*KA*am)
+# # ... but scalar coefficients are carried through for free.
+xpr3 = Expression(KA*az*ap*am*am)
 ca.move_right(xpr3, az)
 xpr3.collect()
-print(xpr3) #   +1 a⁺ a⁻ KA a⁻ az  -1 a⁺ a⁻ KA a⁻
+print(xpr3) #   +K_A a⁺ a⁻ a⁻ az  -K_A a⁺ a⁻ a⁻
 ```

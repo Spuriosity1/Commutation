@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "Commutation"
-version = "1.5.1"
-requires-python = ">= 3.8"
+version = "2.0.0"
+requires-python = ">= 3.11"
 authors = [
 	{name = "Alaric Sanders", email="thathatatt@gmail.com"}
 ]
@@ -14,6 +14,9 @@ readme="README.md"
 description = "A small package for doing commutator algebra"
 classifiers = [
     "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
 ]
@@ -21,6 +24,7 @@ classifiers = [
 
 dependencies = [
   "ipython",
+  "sympy",
 ]
 
 [project.optional-dependencies]

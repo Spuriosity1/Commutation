@@ -4,7 +4,7 @@ A symbolic-algebra package for noncommutative objects, aimed at evaluating large
 commutator expressions (physics operator algebra). The public API is a thin
 re-export (`src/commutation/__init__.py`); all logic lives in two modules.
 
-- **`expression.py`** — the algebraic data model (`Operator`, `Scalar`, `Term`, `Expression`).
+- **`expression.py`** — the algebraic data model (`Operator`, `Term`, `Expression`).
 - **`commutatoralgebra.py`** — commutator/anticommutator relation tables and the
   operator-reordering engine (`CommutatorAlgebra`, `AntiCommutatorAlgebra`).
 - **`style.py`** — `show()`, LaTeX rendering for Jupyter notebooks.
@@ -17,25 +17,29 @@ The algebra is built in three layers, each a standard algebraic structure:
 
 ```
 Operator          a single non-commutative symbol  (e.g. S^z_a)
-  └─ Term         rational-scalar × ordered product of Operators   (monoid)
-       └─ Expression   sum of Terms                                (abelian group)
+  └─ Term         coefficient × ordered product of Operators   (monoid)
+       └─ Expression   sum of Terms                            (abelian group)
 ```
 
 ### `Operator`
 A single symbol. Key fields:
 - `name` — display string and the **key** used in commutator tables (`str(op)`).
 - `latex_string` — optional prettier form for `as_latex()`; defaults to `name`.
-- `is_scalar` — flags symbols the algebra should treat as commuting constants.
 
 Operator arithmetic promotes upward: `op * x → Term`, `op + x → Expression`,
 `-op → Term` (multiplier `-1`). `__eq__` is defined *algebraically* —
 `a == b` evaluates `a + (-1)*b == 0`, so it works across Operator/Term/Expression.
 
-`Scalar` is a trivial subclass that just sets `scalar=True`.
+Scalars (commuting constants) are **not** operators — they live in a term's
+SymPy `multiplier`. Use `sympy.Symbol('J')` rather than a flagged operator.
 
 ### `Term`
 Reads as `multiplier * ops[0] * ops[1] * ...`.
-- `multiplier` — a `fractions.Fraction` (exact rational arithmetic, no floats).
+- `multiplier` — a generic **SymPy** coefficient (`sympy.Expr`). Python `int` and
+  `fractions.Fraction` are accepted and promoted to exact sympy numbers;
+  `float` is rejected (see `coerce_coeff`). This lets a term be scaled by
+  symbols (`sympy.Symbol('J')`), exact rationals, or algebraic numbers such as
+  `sympy.I` (`I**2 == -1`).
 - `ops` — a list of `Operator`s; `[]` means the identity `1`.
 
 Important contract (see the class docstring): `ops` holds **shallow** references
@@ -43,10 +47,10 @@ to `Operator` objects so that tweaking an `Operator` propagates everywhere;
 `Term` itself is copied with `copy.copy` in the arithmetic dunders.
 
 Notable methods:
-- `factor_scalars()` / `move_scalars(side)` — split out or reposition scalar factors.
 - `findall(glob)` — indices of **non-overlapping** occurrences of a subproduct
   (`aaaa.findall(aa) → [0, 2]`). Used by substitution and the move engine.
-- `is_scalar`, `sign`, `order` (= `len(ops)`) — properties.
+- `is_scalar` (True iff `ops` is empty, i.e. a pure coefficient), `sign`,
+  `order` (= `len(ops)`) — properties.
 
 ### `Expression`
 A list of `Term`s read as a sum. The `terms` list is deep-copied on construction
@@ -102,20 +106,21 @@ a clean strategy-pattern split between "how to swap one pair" and "how to sweep"
 - `set_commutator(l, r)` returns a *setter* — call it a second time with the RHS:
   `ca.set_commutator(az, ap)(ap)` sets `[az, ap] = ap`. It automatically stores the
   antisymmetric partner `[r, l] = −[l, r]`.
-- `get_commutator` returns `0` for scalars; for unknown non-scalar operators it
-  warns (or raises `CommutatorUnknownException` under `strict`) and assumes commuting.
+- `get_commutator` warns (or raises `CommutatorUnknownException` under `strict`)
+  and assumes commuting for operators not in the database.
 - `move_right(expr, A)` / `move_left(expr, A)` — public entry points (mutate `expr`).
 
 ### `AntiCommutatorAlgebra`
 Parallel structure using anticommutators; the swap also flips the term's sign.
-Defaults `{A, A} = 2A`, returns `None` for unknown/scalar pairs, and raises
+Defaults `{A, A} = 2A`, returns `None` for unknown pairs, and raises
 `AntiCommutatorUnknownException` when it cannot proceed. (Per `TODO.md`,
 anticommutator support is newer / less exercised than the commutator path.)
 
 ## Conventions & gotchas
 
-- **Exact arithmetic only** — all coefficients are `Fraction`; `int` is accepted and
-  promoted, floats are not.
+- **Exact arithmetic only** — coefficients are `sympy.Expr`; `int` and `Fraction`
+  are accepted and promoted to exact sympy numbers, Python `float` is not
+  (it would introduce inexact arithmetic). Use `Fraction` or `sympy.Rational`.
 - **Operators compared by `name`** in the relation tables, but by object elsewhere
   via algebraic `__eq__`. Two distinct `Operator`s sharing a `name` will collide as
   table keys.
@@ -130,9 +135,9 @@ anticommutator support is newer / less exercised than the commutator path.)
 
 ```
 Commutation/
-├── pyproject.toml          setuptools build, src-layout, dep: ipython
+├── pyproject.toml          setuptools build, src-layout, deps: ipython, sympy
 ├── README.md               usage examples
-├── TODO.md                 roadmap (tests, anticommutators, √-1 scalar, spin helpers)
+├── TODO.md                 roadmap (anticommutators, spin helpers)
 ├── ARCHITECTURE.md         this file
 ├── src/commutation/
 │   ├── __init__.py         public API re-exports
@@ -145,8 +150,9 @@ Commutation/
 
 ## Status / open work (from `TODO.md`)
 
-- **No test suite yet** — the top roadmap item (constructor algebra + known
-  commutator reductions).
 - Harden anticommutator algebra.
-- A special scalar `I` with `I² = −1` / better algebraic-number support.
 - Helper constructors for spin operators (currently built by hand).
+
+Resolved: the test suite now lives under `tests/`; algebraic-number support
+(including `I² = −1`) comes for free now that coefficients are generic SymPy
+expressions.

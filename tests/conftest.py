@@ -6,7 +6,7 @@ without an editable install.
 """
 import pytest
 
-from commutation import Operator, Scalar, CommutatorAlgebra
+from commutation import Operator, CommutatorAlgebra
 
 
 @pytest.fixture
@@ -18,12 +18,6 @@ def ops():
         Operator("c"),
         Operator("d"),
     )
-
-
-@pytest.fixture
-def scalar():
-    """A commuting scalar symbol."""
-    return Scalar("K")
 
 
 @pytest.fixture
